@@ -1,0 +1,85 @@
+--- sound/pci/hda/patch_realtek-org.c	2008-04-12 15:45:54.000000000 -0700
++++ sound/pci/hda/patch_realtek.c	2008-04-12 16:04:43.000000000 -0700
+@@ -97,6 +97,7 @@ enum {
+ enum {
+ 	ALC882_3ST_DIG,
+ 	ALC882_6ST_DIG,
++	ALC885_APPLETV,
+ 	ALC882_AUTO,
+ 	ALC882_MODEL_LAST,
+ };
+@@ -4379,6 +4380,23 @@ static struct snd_kcontrol_new alc882_ca
+ 	{ } /* end */
+ };
+ 
++/* AppleTV Mixer */
++static struct snd_kcontrol_new alc885_appletv_mixer[] = {
++	HDA_CODEC_VOLUME("Master Playback Volume", 0x0c, 0x0 , HDA_OUTPUT),
++	HDA_BIND_MUTE("Master Playback Switch", 0x0c, 2 , HDA_INPUT),
++	HDA_CODEC_VOLUME("Line Playback Volume", 0x0b, 7, HDA_INPUT),
++	HDA_CODEC_MUTE("Line Playback Switch", 0x0b, 7, HDA_INPUT),
++	{ } /* end */
++};
++
++static struct hda_verb alc885_appletv_init_verbs[] = {
++	{0x14, AC_VERB_SET_PIN_WIDGET_CONTROL, PIN_OUT},
++	{0x14, AC_VERB_SET_AMP_GAIN_MUTE, AMP_OUT_UNMUTE},
++	{0x14, AC_VERB_SET_CONNECT_SEL, 0x00},
++	{ }
++};
++
++
+ /* pcm configuration: identiacal with ALC880 */
+ #define alc882_pcm_analog_playback	alc880_pcm_analog_playback
+ #define alc882_pcm_analog_capture	alc880_pcm_analog_capture
+@@ -4424,6 +4442,17 @@ static struct alc_config_preset alc882_p
+ 		.channel_mode = alc882_sixstack_modes,
+ 		.input_mux = &alc882_capture_source,
+ 	},
++	[ALC885_APPLETV] = {
++		.mixers = { alc885_appletv_mixer },
++		.init_verbs = { alc885_appletv_init_verbs },
++		.num_dacs = ARRAY_SIZE(alc882_dac_nids),
++		.dac_nids = alc882_dac_nids,
++		.dig_out_nid = ALC882_DIGOUT_NID,
++		.dig_in_nid = ALC882_DIGIN_NID,
++		.num_channel_mode = ARRAY_SIZE(alc882_ch_modes),
++		.channel_mode = alc882_ch_modes,
++		.input_mux = &alc882_capture_source,
++	},
+ };
+ 
+ 
+@@ -4527,9 +4556,17 @@ static int patch_alc882(struct hda_codec
+ 	board_config = snd_hda_check_board_config(codec, alc882_cfg_tbl);
+ 
+ 	if (board_config < 0 || board_config >= ALC882_MODEL_LAST) {
+-		printk(KERN_INFO "hda_codec: Unknown model for ALC882, "
+-		       "trying auto-probe from BIOS...\n");
+-		board_config = ALC882_AUTO;
++		/* Pick up systems that don't supply PCI SSID */
++		switch (codec->subsystem_id) {
++		case 0x106b2800: /* AppleTV */
++			printk(KERN_INFO "hda_codec: Detected AppleTV RealTek Subsystem ID\n");
++			board_config = ALC885_APPLETV;
++			break;
++ 		default:
++			printk(KERN_INFO "hda_codec: Unknown model for ALC882, "
++		       		"trying auto-probe from BIOS...\n");
++			board_config = ALC882_AUTO;
++		}
+ 	}
+ 
+ 	if (board_config == ALC882_AUTO) {
+@@ -4549,6 +4586,11 @@ static int patch_alc882(struct hda_codec
+ 	if (board_config != ALC882_AUTO)
+ 		setup_preset(spec, &alc882_presets[board_config]);
+ 
++	if (board_config == ALC885_APPLETV) {
++ 		alc882_gpio_mute(codec, 0, 0);
++ 		alc882_gpio_mute(codec, 1, 0);
++ 	}
++
+ 	spec->stream_name_analog = "ALC882 Analog";
+ 	spec->stream_analog_playback = &alc882_pcm_analog_playback;
+ 	spec->stream_analog_capture = &alc882_pcm_analog_capture;

@@ -1,0 +1,11 @@
+--- lirc-0.8.2/daemons/hw_hiddev.c	2007-10-09 22:17:31.000000000 -0700
++++ lirc-0.8.2/daemons/hw_hiddev.c	2007-10-09 22:18:14.000000000 -0700
+@@ -484,6 +482,8 @@
+ 	pre_code = 0;
+ 	main_code = (ev[0].value << 24) + (ev[1].value << 16) +
+ 	            (ev[2].value <<  8) + (ev[3].value <<  0);
++	if (old_main_code == main_code) repeat_flag = 1;
++		old_main_code = main_code;
+ 
+ 	return decode_all(remotes);
+ }

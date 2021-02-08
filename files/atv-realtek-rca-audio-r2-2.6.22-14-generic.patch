@@ -1,0 +1,74 @@
+--- patch_realtek_org.c	2008-03-26 19:22:30.000000000 -0400
++++ patch_realtek.c	2008-03-26 19:22:00.000000000 -0400
+@@ -144,6 +144,7 @@ enum {
+ 	ALC882_TARGA,
+ 	ALC882_ASUS_A7J,
+ 	ALC885_MACPRO,
++	ALC885_APPLETV,
+ 	ALC885_MBP3,
+ 	ALC882_AUTO,
+ 	ALC882_MODEL_LAST,
+@@ -5038,6 +5039,23 @@ static struct hda_verb alc882_eapd_verbs
+ 	{ }
+ };
+ 
++/* AppleTV Mixer */
++static struct snd_kcontrol_new alc885_appletv_mixer[] = {
++	HDA_CODEC_VOLUME("Master Playback Volume", 0x0c, 0x0 , HDA_OUTPUT),
++	HDA_BIND_MUTE("Master Playback Switch", 0x0c, 2 , HDA_INPUT),
++	HDA_CODEC_VOLUME("Line Playback Volume", 0x0b, 7, HDA_INPUT),
++	HDA_CODEC_MUTE("Line Playback Switch", 0x0b, 7, HDA_INPUT),
++	{ } /* end */
++};
++
++static struct hda_verb alc885_appletv_init_verbs[] = {
++	{0x14, AC_VERB_SET_PIN_WIDGET_CONTROL, PIN_OUT},
++	{0x14, AC_VERB_SET_AMP_GAIN_MUTE, AMP_OUT_UNMUTE},
++	{0x14, AC_VERB_SET_CONNECT_SEL, 0x00},
++	{ }
++};
++
++
+ /* Mac Pro test */
+ static struct snd_kcontrol_new alc882_macpro_mixer[] = {
+ 	HDA_CODEC_VOLUME("Front Playback Volume", 0x0c, 0x0, HDA_OUTPUT),
+@@ -5493,6 +5511,17 @@ static struct alc_config_preset alc882_p
+ 		.channel_mode = alc882_ch_modes,
+ 		.input_mux = &alc882_capture_source,
+ 	},
++	[ALC885_APPLETV] = {
++		.mixers = { alc885_appletv_mixer },
++		.init_verbs = { alc885_appletv_init_verbs },
++		.num_dacs = ARRAY_SIZE(alc882_dac_nids),
++		.dac_nids = alc882_dac_nids,
++		.dig_out_nid = ALC882_DIGOUT_NID,
++		.dig_in_nid = ALC882_DIGIN_NID,
++		.num_channel_mode = ARRAY_SIZE(alc882_ch_modes),
++		.channel_mode = alc882_ch_modes,
++		.input_mux = &alc882_capture_source,
++	},
+ 	[ALC882_TARGA] = {
+ 		.mixers = { alc882_targa_mixer, alc882_chmode_mixer,
+ 			    alc882_capture_mixer },
+@@ -5645,6 +5674,10 @@ static int patch_alc882(struct hda_codec
+ 		case 0x106b2c00: /* Macbook Pro rev3 */
+ 			board_config = ALC885_MBP3;
+ 			break;
++		case 0x106b2800: /* AppleTV */
++			printk(KERN_INFO "hda_codec: Detected AppleTV RealTek Subsystem ID\n");
++			board_config = ALC885_APPLETV;
++			break;
+ 		default:
+ 			printk(KERN_INFO "hda_codec: Unknown model for ALC882, "
+ 		       			 "trying auto-probe from BIOS...\n");
+@@ -5673,6 +5706,10 @@ static int patch_alc882(struct hda_codec
+ 		alc882_gpio_mute(codec, 0, 0);
+ 		alc882_gpio_mute(codec, 1, 0);
+ 	}
++	if (board_config == ALC885_APPLETV) {  
++		alc882_gpio_mute(codec, 0, 0);
++		alc882_gpio_mute(codec, 1, 0);
++	}
+ 
+ 	spec->stream_name_analog = "ALC882 Analog";
+ 	spec->stream_analog_playback = &alc882_pcm_analog_playback;
